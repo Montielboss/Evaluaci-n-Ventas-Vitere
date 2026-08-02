@@ -17,8 +17,8 @@ const QUESTIONS = [
   { type:"text", text:"Vendedor", placeholder:"Escribe el nombre del vendedor" },
   { type:"text", text:"Código de cliente", placeholder:"Escribe el código de cliente" },
   { type:"text", text:"Nombre del cliente", placeholder:"Escribe el nombre del cliente" },
-
-
+ 
+ 
   { type:"choice",
   text:"¿El cliente cuenta con publicidad?", options:["Sí","No"], expected:0, weight:4.54,
 },
@@ -26,7 +26,7 @@ const QUESTIONS = [
   text:"¿El vendedor saludó al cliente amablemente?", options:["Sí","No"], expected:0, weight:4.54, },
   { type:"choice",
   text:"¿El refrigerador Danone está conectado y a la temperatura correcta?", options:["Sí","No","N/A"], expected:0, weight:0, hasNA:true },
-
+ 
   { type:"choice",
   text:"¿El vendedor revisó caducidades?", options:["Sí","No"], expected:0, weight:4.54,
     followUp:{ onValue:1, label:"¿Por qué?" } },
@@ -45,23 +45,23 @@ const QUESTIONS = [
   { type:"choice",
   text:"¿El vendedor utilizó el catálogo para negociar?", options:["Sí","No"], expected:0, weight:4.54,
     followUp:{ onValue:1, label:"¿Por qué?" } },
-
+ 
   { type:"choice",
   text:"¿Hay exhibición de Danone?", options:["Sí","No"], expected:0, weight:11, },
-
+ 
   { type:"checklist", 
   text:"¿Hay presencia de las marcas clave Danone?",
   items:["Danup / Licuados","Activia 225g","Danone 220g","Danonino 170","Danonino 90g","Danonino 42g","Danonino maxi","Danonino pouch","Oikos","Danmix","Dany","Flan","Natalla","Danone c/cereal", "Sin producto"], 
   expected:0, 
   weight:14,
   optionValues:[1,1,1,1,1,1,1,1,1,1,1,1,1,1,0] },
-
+ 
   { type:"choice", 
   text:"¿Hay exhibición de Kinder?", options:["Sí","No"], expected:0, weight:5.5, },
   { type:"choice",
   text:"¿Tiene chuponeras?", options:["Sí","No"], expected:0, weight:5.5,
     followUp:{ onValue:0, label:"¿Cuántas?" } },
-
+ 
   { type:"checklist", text:"¿Qué productos Kinder tiene?",
     items:["Sorpresa","Delice","Chocolate","Maxi","Bueno","Mini Bueno", "Sin producto"], 
   expected:0, 
@@ -77,17 +77,17 @@ const QUESTIONS = [
   expected:0, 
   weight:5,
   optionValues:[1,1,1,1,1,0] },
-
+ 
   { type:"choice", text:"¿El vendedor acomodó y frentió el producto que surtió?", options:["Sí","No"], expected:0, weight:4.54,
     followUp:{ onValue:1, label:"¿Por qué?" } },
   { type:"choice", text:"¿El vendedor dejó limpia su área?", options:["Sí","No"], expected:0, weight:4.54,
     followUp:{ onValue:1, label:"¿Por qué?" } },
   { type:"choice", text:"¿El vendedor se despide amable al terminar la venta?", options:["Sí","No"], expected:0, weight:4.54,
     followUp:{ onValue:1, label:"¿Por qué?" } },
-
+ 
   { type:"textarea", text:"Observaciones", placeholder:"Escribe cualquier observación adicional" }
 ];
-
+ 
 const PASSING_SCORE = 60; // porcentaje mínimo de cumplimiento
 function getPctBand(pct){
   if(pct >= 90) return { label:"Nivel de servicio alto", tone:"pass", comment:"Cumplimiento sobresaliente. El estándar se está cubriendo con margen." };
@@ -98,7 +98,7 @@ function getPctBand(pct){
 }
 const STORAGE_KEY = " es_guardadas_v1";
 const THEME_KEY = "eval_theme_v1";
-
+ 
 function applyTheme(theme){
   if(theme === "light"){
     document.documentElement.setAttribute("data-theme", "light");
@@ -108,7 +108,7 @@ function applyTheme(theme){
     document.getElementById("themeToggle").textContent = "🌙";
   }
 }
-
+ 
 function initTheme(){
   const saved = localStorage.getItem(THEME_KEY) || "dark";
   applyTheme(saved);
@@ -120,7 +120,7 @@ function initTheme(){
   });
 }
 initTheme();
-
+ 
 function showExitConfirm(){
   document.getElementById("exitModal").classList.remove("hidden");
 }
@@ -137,7 +137,7 @@ function initExitModal(){
   });
 }
 initExitModal();
-
+ 
 function loadSaved(){
   try{
     return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -145,7 +145,7 @@ function loadSaved(){
     return [];
   }
 }
-
+ 
 function persistSaved(list){
   try{
     localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
@@ -154,9 +154,9 @@ function persistSaved(list){
     return false;
   }
 }
-
+ 
 /* ========================================================================= */
-
+ 
 const ICON_SVG = `
   <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
     <path d="M12 2L22 8L12 14L2 8L12 2Z" fill="white" opacity="0.95"/>
@@ -164,18 +164,18 @@ const ICON_SVG = `
     <path d="M2 16L12 22L22 16" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.35"/>
   </svg>
 `;
-
+ 
 let current = -1; // -1 = pantalla de bienvenida
-
+ 
 function defaultAnswer(q){
   if(q.type === "choice") return { value:null, extra:"" };
   if(q.type === "checklist") return { value:[] };
   return { value:"" };
 }
 const answers = QUESTIONS.map(defaultAnswer);
-
+ 
 const scoredQuestions = () => QUESTIONS.filter(q => q.type === "choice");
-
+ 
 function canProceed(){
   const q = QUESTIONS[current];
   const ans = answers[current];
@@ -183,9 +183,9 @@ function canProceed(){
   if(q.type === "checklist") return ans.value.length > 0;
   return ans.value.trim().length > 0;
 }
-
+ 
 const main = document.getElementById("main");
-
+ 
 function progressHTML(){
   const pct = Math.round((current / QUESTIONS.length) * 100);
   return `
@@ -195,7 +195,7 @@ function progressHTML(){
     </div>
   `;
 }
-
+ 
 function renderIntro(){
   const savedCount = loadSaved().length;
   main.innerHTML = `
@@ -224,12 +224,12 @@ function renderIntro(){
   });
   document.getElementById("savedBtn").addEventListener("click", renderSavedList);
 }
-
+ 
 function renderSavedList(){
   const allList = loadSaved();
   let searchTerm = "";
   let filterMode = "all";
-
+ 
   main.innerHTML = `
     <div class="screen">
       <div class="saved-header">
@@ -246,7 +246,7 @@ function renderSavedList(){
       <div class="saved-list" id="savedListContainer"></div>
     </div>
   `;
-
+ 
   function matchesFilters(item){
     if(filterMode === "pass" && !item.passed) return false;
     if(filterMode === "fail" && item.passed) return false;
@@ -256,7 +256,7 @@ function renderSavedList(){
       .join(" ").toLowerCase();
     return haystack.includes(term);
   }
-
+ 
   function renderList(){
     const filtered = allList.filter(matchesFilters).sort((a, b) => b.savedAt.localeCompare(a.savedAt));
     document.getElementById("resultsCount").textContent = allList.length
@@ -266,16 +266,17 @@ function renderSavedList(){
     container.innerHTML = filtered.length === 0
       ? `<div class="saved-empty">${allList.length === 0 ? "Aún no hay evaluaciones guardadas." : "No se encontraron evaluaciones con ese criterio."}</div>`
       : filtered.map(item => `
-       <div class="saved-item" data-id="${item.id}">
+        <div class="saved-item" data-id="${item.id}">
           <div class="info">
             <div class="top-line">${item.meta.nombreCliente || "Sin nombre de cliente"}</div>
             <div class="sub-line">${item.meta.fecha || "Sin fecha"} · ${item.meta.vendedor || "Sin vendedor"} · ${item.meta.ruta || "Sin ruta"}</div>
           </div>
           <span class="saved-badge ${item.passed ? "pass" : "fail"}">${item.pct}%</span>
+          <button class="saved-view" data-id="${item.id}" title="Ver detalle">👁</button>
           <button class="saved-delete" data-id="${item.id}" title="Eliminar">✕</button>
         </div>
       `).join("");
-
+ 
     container.querySelectorAll(".saved-delete").forEach(btn => {
       btn.addEventListener("click", () => {
         const id = btn.dataset.id;
@@ -283,14 +284,15 @@ function renderSavedList(){
         renderSavedList();
       });
     });
-     container.querySelectorAll(".saved-view").forEach(btn => {
+ 
+    container.querySelectorAll(".saved-view").forEach(btn => {
       btn.addEventListener("click", () => {
         const item = allList.find(i => String(i.id) === btn.dataset.id);
         if(item) renderSavedDetail(item);
       });
     });
   }
-
+ 
   document.getElementById("backToIntroBtn").addEventListener("click", renderIntro);
   document.getElementById("searchInput").addEventListener("input", (e) => {
     searchTerm = e.target.value;
@@ -304,9 +306,11 @@ function renderSavedList(){
       renderList();
     });
   });
-   
+ 
   renderList();
-   function renderSavedDetail(item){
+}
+ 
+function renderSavedDetail(item){
   main.innerHTML = `
     <div class="screen">
       <div class="saved-header">
@@ -334,8 +338,7 @@ function renderSavedList(){
   `;
   document.getElementById("backToSavedBtn").addEventListener("click", renderSavedList);
 }
-}
-
+ 
 function renderChoice(q){
   const ans = answers[current];
   const showFollowUp = q.followUp && ans.value === q.followUp.onValue;
@@ -357,7 +360,7 @@ function renderChoice(q){
     ` : ""}
   `;
 }
-
+ 
 function renderChecklist(q){
   const ans = answers[current];
   const items = Array.isArray(q.items) ? q.items : (Array.isArray(q.options) ? q.options : []);
@@ -372,28 +375,28 @@ function renderChecklist(q){
     </div>
   `;
 }
-
+ 
 function renderTextField(q){
   const ans = answers[current];
   return `
     <input class="field-input" id="textInput" type="text" value="${ans.value.replace(/"/g,'&quot;')}" placeholder="${q.placeholder || ""}">
   `;
 }
-
+ 
 function renderDateField(q){
   const ans = answers[current];
   return `
     <input class="field-input" id="textInput" type="date" value="${ans.value.replace(/"/g,'&quot;')}">
   `;
 }
-
+ 
 function renderTextArea(q){
   const ans = answers[current];
   return `
     <textarea class="field-input" id="textInput" placeholder="${q.placeholder || ""}">${ans.value}</textarea>
   `;
 }
-
+ 
 function renderQuestion(){
   const q = QUESTIONS[current];
   let body = "";
@@ -402,7 +405,7 @@ function renderQuestion(){
   else if(q.type === "text") body = renderTextField(q);
   else if(q.type === "date") body = renderDateField(q);
   else if(q.type === "textarea") body = renderTextArea(q);
-
+ 
   main.innerHTML = `
     <div class="screen">
       ${progressHTML()}
@@ -418,7 +421,7 @@ function renderQuestion(){
       </div>
     </div>
   `;
-
+ 
   if(q.type === "choice"){
     document.querySelectorAll(".option").forEach(btn => {
       btn.addEventListener("click", () => {
@@ -451,7 +454,7 @@ function renderQuestion(){
       });
     }
   }
-
+ 
   document.getElementById("backBtn").addEventListener("click", () => {
     if(current > 0){ current--; renderQuestion(); }
   });
@@ -461,10 +464,10 @@ function renderQuestion(){
     else renderResults();
   });
 }
-
+ 
 function renderResults(){
   let earned = 0, total = 0;
-
+ 
   const rows = QUESTIONS.map((q, i) => {
     const ans = answers[i];
     if(q.type === "choice"){
@@ -497,7 +500,7 @@ function renderResults(){
     }
     return { text:q.text, mark:"neutral", sub: ans.value ? ans.value : "Sin especificar" };
   });
-
+ 
   const listScoringRows = QUESTIONS.map((q, i) => {
     const ans = answers[i];
     if(q.type !== "checklist" || !Array.isArray(q.optionValues)) return null;
@@ -512,11 +515,11 @@ function renderResults(){
       selected: selected.length ? selected.join(", ") : "Ninguno seleccionado"
     };
   }).filter(Boolean);
-
+ 
   const pct = total > 0 ? Math.round((earned / total) * 100) : 0;
   const pctBand = getPctBand(pct);
   const passed = pct >= PASSING_SCORE;
-
+ 
   const meta = {
     fecha: answers[0].value,
     ruta: answers[1].value,
@@ -524,7 +527,7 @@ function renderResults(){
     codigoCliente: answers[3].value,
     nombreCliente: answers[4].value
   };
-
+ 
   main.innerHTML = `
     <div class="screen">
       <div class="result-head">
@@ -567,7 +570,7 @@ function renderResults(){
       </div>
     </div>
   `;
-
+ 
   document.getElementById("saveBtn").addEventListener("click", () => {
     const list = loadSaved();
     list.push({ id: Date.now(), savedAt: new Date().toISOString(), pct, passed, meta, rows });
@@ -580,12 +583,12 @@ function renderResults(){
     document.getElementById("saveRow").style.display = "none";
     document.getElementById("saveNote").textContent = "Evaluación no guardada.";
   });
-
+ 
   document.getElementById("restartBtn").addEventListener("click", () => {
     current = -1;
     QUESTIONS.forEach((q, i) => { answers[i] = defaultAnswer(q); });
     renderIntro();
   });
 }
-
+ 
 renderIntro();
