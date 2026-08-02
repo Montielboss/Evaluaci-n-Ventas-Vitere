@@ -229,6 +229,8 @@
   .saved-badge.fail{ color:var(--bad); background:rgba(248,113,113,0.14); }
   .saved-delete{ background:transparent; border:none; color:var(--slate); font-size:13px; padding:6px; flex-shrink:0; }
   .saved-delete:hover{ color:var(--bad); }
+.saved-view{ background:transparent; border:none; color:var(--slate); font-size:13px; padding:6px; flex-shrink:0; }
+  .saved-view:hover{ color:var(--cyan); }
 
   .search-input{ margin-bottom:12px; }
   .filter-chips{ display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
