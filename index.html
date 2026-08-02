@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evaluación-Punto de Venta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="doc">
+  <button class="theme-toggle" id="themeToggle" title="Cambiar tema" type="button">🌙</button>
+  <main id="main"></main>
+</div>
+
+<div class="modal-overlay hidden" id="exitModal">
+  <div class="modal-card">
+    <h3>¿Seguro que quieres salir?</h3>
+    <p>Perderás las respuestas de esta evaluación si no la has guardado.</p>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="cancelExitBtn">Cancelar</button>
+      <button class="btn-primary" id="confirmExitBtn">Salir</button>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
