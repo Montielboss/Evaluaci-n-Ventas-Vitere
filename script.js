@@ -266,7 +266,7 @@ function renderSavedList(){
     container.innerHTML = filtered.length === 0
       ? `<div class="saved-empty">${allList.length === 0 ? "Aún no hay evaluaciones guardadas." : "No se encontraron evaluaciones con ese criterio."}</div>`
       : filtered.map(item => `
-        <div class="saved-item" data-id="${item.id}">
+       <div class="saved-item" data-id="${item.id}">
           <div class="info">
             <div class="top-line">${item.meta.nombreCliente || "Sin nombre de cliente"}</div>
             <div class="sub-line">${item.meta.fecha || "Sin fecha"} · ${item.meta.vendedor || "Sin vendedor"} · ${item.meta.ruta || "Sin ruta"}</div>
@@ -281,6 +281,12 @@ function renderSavedList(){
         const id = btn.dataset.id;
         persistSaved(loadSaved().filter(item => String(item.id) !== id));
         renderSavedList();
+      });
+    });
+     container.querySelectorAll(".saved-view").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const item = allList.find(i => String(i.id) === btn.dataset.id);
+        if(item) renderSavedDetail(item);
       });
     });
   }
@@ -298,8 +304,36 @@ function renderSavedList(){
       renderList();
     });
   });
-
+   
   renderList();
+   function renderSavedDetail(item){
+  main.innerHTML = `
+    <div class="screen">
+      <div class="saved-header">
+        <h2>Detalle de evaluación</h2>
+        <button class="btn-ghost" id="backToSavedBtn" style="padding:8px 10px;">Volver</button>
+      </div>
+      <div class="result-head">
+        <div class="seal"><span class="pct">${item.pct}%</span></div>
+        <div class="result-sub">${item.meta.nombreCliente || "Sin nombre de cliente"}</div>
+        <div class="result-sub">${item.meta.fecha || "Sin fecha"} · ${item.meta.vendedor || "Sin vendedor"} · ${item.meta.ruta || "Sin ruta"}</div>
+      </div>
+      <div class="breakdown">
+        <div class="breakdown-title">Detalle de la visita</div>
+        ${item.rows.map((r, i) => `
+          <div class="b-row">
+            <span class="b-mark ${r.mark}">${r.mark === "ok" ? "✓" : r.mark === "bad" ? "✕" : "•"}</span>
+            <span class="b-body">
+              <span class="b-text">${i + 1}. ${r.text}</span>
+              <span class="b-answer">${r.sub}</span>
+            </span>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+  document.getElementById("backToSavedBtn").addEventListener("click", renderSavedList);
+}
 }
 
 function renderChoice(q){
