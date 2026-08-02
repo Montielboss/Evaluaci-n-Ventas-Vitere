@@ -272,7 +272,7 @@ function renderSavedList(){
             <div class="sub-line">${item.meta.fecha || "Sin fecha"} · ${item.meta.vendedor || "Sin vendedor"} · ${item.meta.ruta || "Sin ruta"}</div>
           </div>
           <span class="saved-badge ${item.passed ? "pass" : "fail"}">${item.pct}%</span>
-          <button class="saved-view" data-id="${item.id}" title="Ver detalle">👁</button>
+          <button class="saved-view" data-id="${item.id}" title="Ver detalle">📝</button>
           <button class="saved-delete" data-id="${item.id}" title="Eliminar">✕</button>
         </div>
       `).join("");
