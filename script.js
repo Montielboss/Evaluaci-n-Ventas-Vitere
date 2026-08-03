@@ -26,7 +26,6 @@ const QUESTIONS = [
   text:"¿El vendedor saludó al cliente amablemente?", options:["Sí","No"], expected:0, weight:4.54, },
   { type:"choice",
   text:"¿El refrigerador Danone está conectado y a la temperatura correcta?", options:["Sí","No","N/A"], expected:0, weight:0, hasNA:true },
-  { type:"photo", text:"Foto del refrigerador Danone", optional:true },
 
   { type:"choice",
   text:"¿El vendedor revisó caducidades?", options:["Sí","No"], expected:0, weight:4.54,
@@ -49,7 +48,6 @@ const QUESTIONS = [
 
   { type:"choice",
   text:"¿Hay exhibición de Danone?", options:["Sí","No"], expected:0, weight:11, },
-  { type:"photo", text:"Foto de la exhibición Danone", multiple:true, optional:true },
 
   { type:"checklist", 
   text:"¿Hay presencia de las marcas clave Danone?",
@@ -87,8 +85,7 @@ const QUESTIONS = [
   { type:"choice", text:"¿El vendedor se despide amable al terminar la venta?", options:["Sí","No"], expected:0, weight:4.54,
     followUp:{ onValue:1, label:"¿Por qué?" } },
 
-  { type:"textarea", text:"Observaciones", placeholder:"Escribe cualquier observación adicional" },
-  { type:"signature", text:"Firma del vendedor que atendió la visita" }
+  { type:"textarea", text:"Observaciones", placeholder:"Escribe cualquier observación adicional" }
 ];
 
 const PASSING_SCORE = 60; // porcentaje mínimo de cumplimiento
@@ -173,8 +170,6 @@ let current = -1; // -1 = pantalla de bienvenida
 function defaultAnswer(q){
   if(q.type === "choice") return { value:null, extra:"" };
   if(q.type === "checklist") return { value:[] };
-  if(q.type === "photo") return { value: q.multiple ? [] : "" };
-  if(q.type === "signature") return { value:"" };
   return { value:"" };
 }
 const answers = QUESTIONS.map(defaultAnswer);
@@ -186,14 +181,6 @@ function canProceed(){
   const ans = answers[current];
   if(q.type === "choice") return ans.value !== null;
   if(q.type === "checklist") return ans.value.length > 0;
-  if(q.type === "photo"){
-    if(q.optional) return true;
-    return q.multiple ? ans.value.length > 0 : !!ans.value;
-  }
-  if(q.type === "signature"){
-    if(q.optional) return true;
-    return !!ans.value;
-  }
   return ans.value.trim().length > 0;
 }
 
@@ -343,11 +330,6 @@ function renderSavedDetail(item){
             <span class="b-body">
               <span class="b-text">${i + 1}. ${r.text}</span>
               <span class="b-answer">${r.sub}</span>
-              ${r.photos && r.photos.length ? `
-                <span class="b-photos">
-                  ${r.photos.map(src => `<img src="${src}" alt="Evidencia">`).join("")}
-                </span>
-              ` : ""}
             </span>
           </div>
         `).join("")}
@@ -429,122 +411,6 @@ function renderTextArea(q){
   `;
 }
 
-function fileToDataURL(file){
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-// Reduce el tamaño de la foto antes de guardarla (localStorage tiene poco espacio)
-function compressImage(dataURL, maxSize = 900, quality = 0.7){
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      let { width, height } = img;
-      if(width > height && width > maxSize){ height *= maxSize / width; width = maxSize; }
-      else if(height > maxSize){ width *= maxSize / height; height = maxSize; }
-      const canvas = document.createElement("canvas");
-      canvas.width = width; canvas.height = height;
-      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL("image/jpeg", quality));
-    };
-    img.onerror = () => resolve(dataURL);
-    img.src = dataURL;
-  });
-}
-
-function renderPhoto(q){
-  const ans = answers[current];
-  const photos = q.multiple ? ans.value : (ans.value ? [ans.value] : []);
-  return `
-    <div class="photo-wrap" id="photoWrap">
-      <div class="photo-grid" id="photoGrid">
-        ${photos.map((src, i) => `
-          <div class="photo-thumb">
-            <img src="${src}" alt="Foto ${i + 1}">
-            <button type="button" class="photo-remove" data-index="${i}" title="Quitar">✕</button>
-          </div>
-        `).join("")}
-        ${(q.multiple || photos.length === 0) ? `
-          <label class="photo-add">
-            <input type="file" accept="image/*" capture="environment" id="photoInput" hidden>
-            <span class="photo-add-icon">📷</span>
-            <span>${photos.length ? "Agregar" : "Tomar foto"}</span>
-          </label>
-        ` : ""}
-      </div>
-      ${q.optional ? `<div class="followup-label" style="margin-top:10px;">Opcional</div>` : ""}
-    </div>
-  `;
-}
-
-function renderSignature(q){
-  const ans = answers[current];
-  return `
-    <div class="signature-wrap">
-      ${ans.value ? `
-        <div class="signature-preview">
-          <img src="${ans.value}" alt="Firma guardada">
-        </div>
-        <button type="button" class="btn-ghost" id="clearSignatureBtn">Firmar de nuevo</button>
-      ` : `
-        <div class="signature-pad-box">
-          <canvas id="signaturePad"></canvas>
-        </div>
-        <div class="signature-actions">
-          <button type="button" class="btn-ghost" id="eraseSignatureBtn">Borrar</button>
-          <button type="button" class="btn-primary" id="confirmSignatureBtn">Confirmar firma</button>
-        </div>
-      `}
-      ${q.optional ? `<div class="followup-label" style="margin-top:10px;">Opcional</div>` : ""}
-    </div>
-  `;
-}
-
-function initSignaturePad(){
-  const canvas = document.getElementById("signaturePad");
-  if(!canvas) return;
-  const ratio = window.devicePixelRatio || 1;
-  const rect = canvas.getBoundingClientRect();
-  canvas.width = rect.width * ratio;
-  canvas.height = rect.height * ratio;
-  const ctx = canvas.getContext("2d");
-  ctx.scale(ratio, ratio);
-  ctx.lineWidth = 2.4;
-  ctx.lineCap = "round";
-  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--ink") || "#f3f6fb";
-
-  let drawing = false, hasStroke = false;
-  const pos = (e) => {
-    const r = canvas.getBoundingClientRect();
-    const p = e.touches ? e.touches[0] : e;
-    return { x: p.clientX - r.left, y: p.clientY - r.top };
-  };
-  const start = (e) => { drawing = true; hasStroke = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); e.preventDefault(); };
-  const move = (e) => { if(!drawing) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); e.preventDefault(); };
-  const end = () => { drawing = false; };
-
-  canvas.addEventListener("mousedown", start);
-  canvas.addEventListener("mousemove", move);
-  window.addEventListener("mouseup", end);
-  canvas.addEventListener("touchstart", start, { passive:false });
-  canvas.addEventListener("touchmove", move, { passive:false });
-  canvas.addEventListener("touchend", end);
-
-  document.getElementById("eraseSignatureBtn").addEventListener("click", () => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    hasStroke = false;
-  });
-  document.getElementById("confirmSignatureBtn").addEventListener("click", () => {
-    if(!hasStroke) return;
-    answers[current].value = canvas.toDataURL("image/png");
-    renderQuestion();
-  });
-}
-
 function renderQuestion(){
   const q = QUESTIONS[current];
   let body = "";
@@ -553,19 +419,11 @@ function renderQuestion(){
   else if(q.type === "text") body = renderTextField(q);
   else if(q.type === "date") body = renderDateField(q);
   else if(q.type === "textarea") body = renderTextArea(q);
-  else if(q.type === "photo") body = renderPhoto(q);
-  else if(q.type === "signature") body = renderSignature(q);
 
   main.innerHTML = `
     <div class="screen">
       ${progressHTML()}
-      <div class="q-eyebrow">${
-        q.type === "checklist" ? `Selección múltiple · ${q.optional ? "opcional" : "obligatorio"}` :
-        (q.type.startsWith("text") || q.type === "date") ? `Campo abierto · ${q.optional ? "opcional" : "obligatorio"}` :
-        q.type === "photo" ? `Evidencia fotográfica · ${q.optional ? "opcional" : "obligatorio"}` :
-        q.type === "signature" ? `Firma · ${q.optional ? "opcional" : "obligatorio"}` :
-        `Reactivo ${current + 1} · ${q.optional ? "opcional" : "obligatorio"}`
-      }</div>
+      <div class="q-eyebrow">${q.type === "checklist" ? "Selección múltiple · obligatorio" : (q.type.startsWith("text") || q.type === "date") ? "Campo abierto · obligatorio" : `Reactivo ${current + 1} · obligatorio`}</div>
       <p class="q-text">${q.text}</p>
       ${body}
       <div class="nav-row">
@@ -601,36 +459,6 @@ function renderQuestion(){
         renderQuestion();
       });
     });
-  } else if(q.type === "photo"){
-    const input = document.getElementById("photoInput");
-    if(input){
-      input.addEventListener("change", async (e) => {
-        const file = e.target.files[0];
-        if(!file) return;
-        const raw = await fileToDataURL(file);
-        const compressed = await compressImage(raw);
-        if(q.multiple) answers[current].value.push(compressed);
-        else answers[current].value = compressed;
-        renderQuestion();
-      });
-    }
-    document.querySelectorAll(".photo-remove").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const i = parseInt(btn.dataset.index, 10);
-        if(q.multiple) answers[current].value.splice(i, 1);
-        else answers[current].value = "";
-        renderQuestion();
-      });
-    });
-  } else if(q.type === "signature"){
-    initSignaturePad();
-    const clearBtn = document.getElementById("clearSignatureBtn");
-    if(clearBtn){
-      clearBtn.addEventListener("click", () => {
-        answers[current].value = "";
-        renderQuestion();
-      });
-    }
   } else {
     const input = document.getElementById("textInput");
     if(input){
@@ -684,13 +512,6 @@ function renderResults(){
       earned += selectedPoints;
       return { text:q.text, mark:"neutral", sub: selected.length ? selected.join(", ") : "Ninguno seleccionado" };
     }
-    if(q.type === "photo"){
-      const photos = q.multiple ? ans.value : (ans.value ? [ans.value] : []);
-      return { text:q.text, mark:"neutral", sub: photos.length ? "Con evidencia fotográfica" : "Sin foto", photos };
-    }
-    if(q.type === "signature"){
-      return { text:q.text, mark:"neutral", sub: ans.value ? "Firmado" : "Sin firma", photos: ans.value ? [ans.value] : [] };
-    }
     return { text:q.text, mark:"neutral", sub: ans.value ? ans.value : "Sin especificar" };
   });
 
@@ -737,11 +558,6 @@ function renderResults(){
             <span class="b-body">
               <span class="b-text">${i + 1}. ${r.text}</span>
               <span class="b-answer">${r.sub}</span>
-              ${r.photos && r.photos.length ? `
-                <span class="b-photos">
-                  ${r.photos.map(src => `<img src="${src}" alt="Evidencia">`).join("")}
-                </span>
-              ` : ""}
             </span>
           </div>
         `).join("")}
