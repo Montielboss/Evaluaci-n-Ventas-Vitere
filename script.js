@@ -87,8 +87,7 @@ const QUESTIONS = [
   { type:"choice", text:"¿El vendedor se despide amable al terminar la venta?", options:["Sí","No"], expected:0, weight:4.54,
     followUp:{ onValue:1, label:"¿Por qué?" } },
 
-  { type:"textarea", text:"Observaciones", placeholder:"Escribe cualquier observación adicional" },
-  { type:"signature", text:"Firma del vendedor que atendió la visita" }
+  { type:"textarea", text:"Observaciones", placeholder:"Escribe cualquier observación adicional" }
 ];
 
 const PASSING_SCORE = 60; // porcentaje mínimo de cumplimiento
