@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel de Evaluaciones - Punto de Venta</title>
+<meta name="theme-color" content="#0a111f">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .doc{ max-width:640px; }
+  .panel-stats{ display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:20px; }
+  .panel-refresh{ background:transparent; border:none; color:var(--slate); font-size:13px; padding:8px; cursor:pointer; }
+  .panel-refresh:hover{ color:var(--ink); }
+</style>
+</head>
+<body>
+
+<div class="doc">
+  <button class="theme-toggle" id="themeToggle" title="Cambiar tema" type="button">🌙</button>
+  <main id="main"></main>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="panel.js"></script>
+
+</body>
+</html>
