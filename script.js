@@ -286,6 +286,7 @@ function renderIntro(){
       <button class="btn-primary btn-wide" id="startBtn">Empezar <span>→</span></button>
       <button class="btn-ghost btn-wide" id="savedBtn" style="margin-top:6px;">Evaluaciones guardadas${savedCount ? ` (${savedCount})` : ""}</button>
       <div class="helper-text">Podrás avanzar y retroceder libremente entre preguntas.</div>
+      <a href="panel.html" class="btn-ghost" style="margin-top:14px; font-size:12.5px;">Panel de gerente →</a>
     </div>
   `;
   document.getElementById("startBtn").addEventListener("click", () => {
