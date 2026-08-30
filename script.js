@@ -157,6 +157,69 @@ function persistSaved(list){
   }
 }
 
+/* =========================================================================
+   SINCRONIZACIÓN EN LA NUBE (Firebase Firestore)
+   Reemplaza los valores de abajo por los de TU proyecto de Firebase
+   (Configuración del proyecto → tus apps → objeto firebaseConfig).
+   Mientras no los reemplaces, la app sigue funcionando normal, solo local.
+   ========================================================================= */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBSxPFcHNt9vEIlvvDAEHuZerPI1MsLRRI",
+  authDomain: "punto-de-venta-1f9f5.firebaseapp.com",
+  projectId: "punto-de-venta-1f9f5",
+  storageBucket: "punto-de-venta-1f9f5.firebasestorage.app",
+  messagingSenderId: "724566766871",
+  appId: "1:724566766871:web:4e6944e3cdb070867eb352"
+};
+
+let db = null;
+let cloudReady = false;
+
+function initCloud(){
+  try{
+    if(!window.firebase || FIREBASE_CONFIG.apiKey === "TU_API_KEY"){
+      console.warn("Firebase no está configurado todavía (FIREBASE_CONFIG). La app funcionará solo localmente.");
+      return;
+    }
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.firestore();
+    // Deja que seq guarde cambios sin internet y los mande solo cuando haya señal.
+    db.enablePersistence({ synchronizeTabs:true }).catch((err) => {
+      console.warn("Persistencia offline no disponible:", err.code);
+    });
+    cloudReady = true;
+    syncPendingToCloud();
+  }catch(e){
+    console.warn("No se pudo iniciar la sincronización en la nube:", e);
+  }
+}
+
+function markSynced(id, synced){
+  const list = loadSaved();
+  const idx = list.findIndex(i => i.id === id);
+  if(idx !== -1){
+    list[idx].synced = synced;
+    persistSaved(list);
+  }
+}
+
+function pushToCloud(item){
+  if(!cloudReady || !db) return;
+  db.collection("evaluaciones").doc(String(item.id))
+    .set(item)
+    .then(() => markSynced(item.id, true))
+    .catch((err) => console.warn("No se pudo sincronizar todavía (se reintentará):", err.message));
+}
+
+function syncPendingToCloud(){
+  if(!cloudReady) return;
+  loadSaved().filter(item => !item.synced).forEach(pushToCloud);
+}
+
+// Reintenta apenas el teléfono recupera señal, y también al abrir la app.
+window.addEventListener("online", syncPendingToCloud);
+initCloud();
+
 /* ========================================================================= */
 
 const ICON_SVG = `
@@ -173,7 +236,6 @@ function defaultAnswer(q){
   if(q.type === "choice") return { value:null, extra:"" };
   if(q.type === "checklist") return { value:[] };
   if(q.type === "photo") return { value: q.multiple ? [] : "" };
-  if(q.type === "signature") return { value:"" };
   return { value:"" };
 }
 const answers = QUESTIONS.map(defaultAnswer);
@@ -188,10 +250,6 @@ function canProceed(){
   if(q.type === "photo"){
     if(q.optional) return true;
     return q.multiple ? ans.value.length > 0 : !!ans.value;
-  }
-  if(q.type === "signature"){
-    if(q.optional) return true;
-    return !!ans.value;
   }
   return ans.value.trim().length > 0;
 }
@@ -284,6 +342,7 @@ function renderSavedList(){
             <div class="sub-line">${item.meta.fecha || "Sin fecha"} · ${item.meta.vendedor || "Sin vendedor"} · ${item.meta.ruta || "Sin ruta"}</div>
           </div>
           <span class="saved-badge ${item.passed ? "pass" : "fail"}">${item.pct}%</span>
+          <span title="${item.synced ? "Sincronizado con la nube" : "Pendiente de sincronizar"}" style="font-size:14px;">${item.synced ? "☁️" : "⏳"}</span>
           <button class="saved-view" data-id="${item.id}" title="Ver detalle">📝</button>
           <button class="saved-delete" data-id="${item.id}" title="Eliminar">✕</button>
         </div>
@@ -480,70 +539,6 @@ function renderPhoto(q){
   `;
 }
 
-function renderSignature(q){
-  const ans = answers[current];
-  return `
-    <div class="signature-wrap">
-      ${ans.value ? `
-        <div class="signature-preview">
-          <img src="${ans.value}" alt="Firma guardada">
-        </div>
-        <button type="button" class="btn-ghost" id="clearSignatureBtn">Firmar de nuevo</button>
-      ` : `
-        <div class="signature-pad-box">
-          <canvas id="signaturePad"></canvas>
-        </div>
-        <div class="signature-actions">
-          <button type="button" class="btn-ghost" id="eraseSignatureBtn">Borrar</button>
-          <button type="button" class="btn-primary" id="confirmSignatureBtn">Confirmar firma</button>
-        </div>
-      `}
-      ${q.optional ? `<div class="followup-label" style="margin-top:10px;">Opcional</div>` : ""}
-    </div>
-  `;
-}
-
-function initSignaturePad(){
-  const canvas = document.getElementById("signaturePad");
-  if(!canvas) return;
-  const ratio = window.devicePixelRatio || 1;
-  const rect = canvas.getBoundingClientRect();
-  canvas.width = rect.width * ratio;
-  canvas.height = rect.height * ratio;
-  const ctx = canvas.getContext("2d");
-  ctx.scale(ratio, ratio);
-  ctx.lineWidth = 2.4;
-  ctx.lineCap = "round";
-  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--ink") || "#f3f6fb";
-
-  let drawing = false, hasStroke = false;
-  const pos = (e) => {
-    const r = canvas.getBoundingClientRect();
-    const p = e.touches ? e.touches[0] : e;
-    return { x: p.clientX - r.left, y: p.clientY - r.top };
-  };
-  const start = (e) => { drawing = true; hasStroke = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); e.preventDefault(); };
-  const move = (e) => { if(!drawing) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); e.preventDefault(); };
-  const end = () => { drawing = false; };
-
-  canvas.addEventListener("mousedown", start);
-  canvas.addEventListener("mousemove", move);
-  window.addEventListener("mouseup", end);
-  canvas.addEventListener("touchstart", start, { passive:false });
-  canvas.addEventListener("touchmove", move, { passive:false });
-  canvas.addEventListener("touchend", end);
-
-  document.getElementById("eraseSignatureBtn").addEventListener("click", () => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    hasStroke = false;
-  });
-  document.getElementById("confirmSignatureBtn").addEventListener("click", () => {
-    if(!hasStroke) return;
-    answers[current].value = canvas.toDataURL("image/png");
-    renderQuestion();
-  });
-}
-
 function renderQuestion(){
   const q = QUESTIONS[current];
   let body = "";
@@ -553,7 +548,6 @@ function renderQuestion(){
   else if(q.type === "date") body = renderDateField(q);
   else if(q.type === "textarea") body = renderTextArea(q);
   else if(q.type === "photo") body = renderPhoto(q);
-  else if(q.type === "signature") body = renderSignature(q);
 
   main.innerHTML = `
     <div class="screen">
@@ -562,7 +556,6 @@ function renderQuestion(){
         q.type === "checklist" ? `Selección múltiple · ${q.optional ? "opcional" : "obligatorio"}` :
         (q.type.startsWith("text") || q.type === "date") ? `Campo abierto · ${q.optional ? "opcional" : "obligatorio"}` :
         q.type === "photo" ? `Evidencia fotográfica · ${q.optional ? "opcional" : "obligatorio"}` :
-        q.type === "signature" ? `Firma · ${q.optional ? "opcional" : "obligatorio"}` :
         `Reactivo ${current + 1} · ${q.optional ? "opcional" : "obligatorio"}`
       }</div>
       <p class="q-text">${q.text}</p>
@@ -621,15 +614,6 @@ function renderQuestion(){
         renderQuestion();
       });
     });
-  } else if(q.type === "signature"){
-    initSignaturePad();
-    const clearBtn = document.getElementById("clearSignatureBtn");
-    if(clearBtn){
-      clearBtn.addEventListener("click", () => {
-        answers[current].value = "";
-        renderQuestion();
-      });
-    }
   } else {
     const input = document.getElementById("textInput");
     if(input){
@@ -686,9 +670,6 @@ function renderResults(){
     if(q.type === "photo"){
       const photos = q.multiple ? ans.value : (ans.value ? [ans.value] : []);
       return { text:q.text, mark:"neutral", sub: photos.length ? "Con evidencia fotográfica" : "Sin foto", photos };
-    }
-    if(q.type === "signature"){
-      return { text:q.text, mark:"neutral", sub: ans.value ? "Firmado" : "Sin firma", photos: ans.value ? [ans.value] : [] };
     }
     return { text:q.text, mark:"neutral", sub: ans.value ? ans.value : "Sin especificar" };
   });
@@ -770,8 +751,10 @@ function renderResults(){
 
   document.getElementById("saveBtn").addEventListener("click", () => {
     const list = loadSaved();
-    list.push({ id: Date.now(), savedAt: new Date().toISOString(), pct, passed, meta, rows, listScoringRows });
+    const record = { id: Date.now(), savedAt: new Date().toISOString(), pct, passed, meta, rows, listScoringRows, synced:false };
+    list.push(record);
     const ok = persistSaved(list);
+    pushToCloud(record);
     document.getElementById("saveRow").style.display = "none";
     document.getElementById("saveNote").className = "save-note" + (ok ? " ok" : "");
     document.getElementById("saveNote").textContent = ok ? "Evaluación guardada en este dispositivo." : "No se pudo guardar la evaluación.";
