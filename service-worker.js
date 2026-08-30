@@ -8,7 +8,7 @@
    el teléfono puede seguir usando los archivos viejos guardados.
    ========================================================================== */
 
-const CACHE_NAME = "eval-pv-v1.5";
+const CACHE_NAME = "eval-pv-v1.6";
 
 const CORE_ASSETS = [
   "./",
@@ -17,7 +17,9 @@ const CORE_ASSETS = [
   "./script.js",
   "./manifest.json",
   "./icon-192.png",
-  "./icon-512.png"
+  "./icon-512.png",
+  "./panel.html",
+  "./panel.js"
 ];
 
 // Al instalar: descarga y guarda los archivos principales
