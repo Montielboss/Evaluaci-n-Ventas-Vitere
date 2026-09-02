@@ -8,7 +8,7 @@
    el teléfono puede seguir usando los archivos viejos guardados.
    ========================================================================== */
 
-const CACHE_NAME = "eval-pv-v1.8";
+const CACHE_NAME = "eval-pv-v1.9";
 
 const CORE_ASSETS = [
   "./",
@@ -22,10 +22,21 @@ const CORE_ASSETS = [
   "./panel.js"
 ];
 
-// Al instalar: descarga y guarda los archivos principales
+// Al instalar: descarga y guarda los archivos principales.
+// Se guardan uno por uno (en vez de todos o nada) para que, si uno falla
+// por una conexión de datos móviles inestable, los demás sí queden guardados
+// y la próxima vez se intente de nuevo con el que faltó.
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS))
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.all(
+        CORE_ASSETS.map((url) =>
+          cache.add(url).catch((err) => {
+            console.warn("No se pudo guardar en caché:", url, err);
+          })
+        )
+      )
+    )
   );
   self.skipWaiting();
 });
@@ -44,31 +55,47 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Al pedir un archivo: primero intenta la red (para tener lo más nuevo),
-// y si no hay internet, usa lo guardado en caché.
+// Al pedir un archivo:
+// - Para la página principal y los archivos base de la app (HTML, CSS, JS,
+//   imágenes): responde DE INMEDIATO con lo que ya está guardado, sin
+//   esperar al internet. Así no se queda pegado "cargando" si la señal
+//   está lenta o inestable. Si sí hay internet, de paso trae la versión
+//   más nueva en segundo plano para la próxima vez que se abra.
+// - Para todo lo demás (por ejemplo las consultas a Firestore): intenta
+//   primero por internet, ya que ahí sí se necesita la información más
+//   reciente, y usa lo guardado solo si no hay conexión.
 self.addEventListener("fetch", (event) => {
   if(event.request.method !== "GET") return;
+
+  const isNavigation = event.request.mode === "navigate";
+  const sameOrigin = event.request.url.startsWith(self.location.origin);
+  const isShellAsset = sameOrigin && ["script", "style", "manifest", "image"].includes(event.request.destination);
+
+  if(isNavigation || isShellAsset){
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        const networkFetch = fetch(event.request)
+          .then((response) => {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+            return response;
+          })
+          .catch(() => null);
+        return cached || networkFetch.then((res) => res || (isNavigation ? caches.match("./index.html") : undefined));
+      })
+    );
+    return;
+  }
 
   event.respondWith(
     fetch(event.request)
       .then((response) => {
         const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          // Solo guarda respuestas válidas de nuestro propio sitio
-          if(event.request.url.startsWith(self.location.origin)){
-            cache.put(event.request, copy);
-          }
-        });
+        if(sameOrigin){
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        }
         return response;
       })
-      .catch(() =>
-        caches.match(event.request).then((cached) => {
-          if(cached) return cached;
-          // Si piden una página y no hay nada guardado, muestra el inicio
-          if(event.request.mode === "navigate"){
-            return caches.match("./index.html");
-          }
-        })
-      )
+      .catch(() => caches.match(event.request))
   );
 });
