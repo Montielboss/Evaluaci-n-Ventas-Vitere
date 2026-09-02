@@ -88,7 +88,7 @@ function matchesFilters(item){
   if(filterMode === "pass" && !item.passed) return false;
   if(filterMode === "fail" && item.passed) return false;
   const term = searchTerm.trim().toLowerCase();
-  if(!term) return true;
+  if(term.length < 3) return true;
   const haystack = [item.meta?.nombreCliente, item.meta?.vendedor, item.meta?.ruta, item.meta?.fecha, item.meta?.codigoCliente]
     .join(" ").toLowerCase();
   return haystack.includes(term);
@@ -118,7 +118,7 @@ function renderList(loading){
         </div>
       </div>
 
-      <div class="results-count">${loading ? "Cargando…" : `${filtered.length} de ${allItems.length} evaluaciones`}</div>
+      <div class="results-count">${loading ? "Cargando…" : (searchTerm.trim().length > 0 && searchTerm.trim().length < 3 ? "Escribe al menos 3 caracteres para buscar" : `${filtered.length} de ${allItems.length} evaluaciones`)}</div>
 
       <div class="panel-grid" id="savedListContainer">
         ${loading ? "" : (filtered.length === 0
