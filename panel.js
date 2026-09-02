@@ -138,7 +138,16 @@ function renderList(loading){
 
   const searchInput = document.getElementById("searchInput");
   if(searchInput){
-    searchInput.addEventListener("input", (e) => { searchTerm = e.target.value; renderList(); });
+    searchInput.addEventListener("input", (e) => {
+      searchTerm = e.target.value;
+      const cursorPos = e.target.selectionStart;
+      renderList();
+      const newInput = document.getElementById("searchInput");
+      if(newInput){
+        newInput.focus();
+        newInput.setSelectionRange(cursorPos, cursorPos);
+      }
+    });
   }
   document.querySelectorAll("#filterChips .chip").forEach(chip => {
     chip.addEventListener("click", () => { filterMode = chip.dataset.filter; renderList(); });
