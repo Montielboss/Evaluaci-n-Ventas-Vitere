@@ -38,6 +38,17 @@ function initTheme(){
 }
 initTheme();
 
+function initSideToolbar(){
+  document.getElementById("sideSearchBtn").addEventListener("click", () => {
+    const input = document.getElementById("searchInput");
+    if(input){
+      input.focus();
+      input.scrollIntoView({ behavior:"smooth", block:"center" });
+    }
+  });
+}
+initSideToolbar();
+
 const main = document.getElementById("main");
 let allItems = [];
 let searchTerm = "";
@@ -77,15 +88,17 @@ function renderList(loading){
 
   main.innerHTML = `
     <div class="screen">
-      <div class="saved-header">
-        <h2>Panel de Evaluaciones</h2>
+      <div class="panel-header">
+        <h1>Panel de Evaluaciones</h1>
         <button class="panel-refresh" id="refreshBtn" title="Actualizar">🔄</button>
       </div>
-      <div class="panel-stats">
-        <div class="meta-card"><div class="n">${allItems.length}</div><div class="l">Visitas</div></div>
-        <div class="meta-card"><div class="n">${passCount}</div><div class="l">Aprobadas</div></div>
-        <div class="meta-card"><div class="n">${avgPct}%</div><div class="l">Promedio</div></div>
+
+      <div class="panel-stats-vertical">
+        <div class="panel-stat-row"><span class="l">Visitas</span><span class="n">${allItems.length}</span></div>
+        <div class="panel-stat-row"><span class="l">Aprobadas</span><span class="n">${passCount}</span></div>
+        <div class="panel-stat-row"><span class="l">Promedio</span><span class="n">${avgPct}%</span></div>
       </div>
+
       <input class="field-input search-input" id="searchInput" type="text" placeholder="Buscar por cliente, vendedor, ruta o fecha" value="${searchTerm.replace(/"/g,'&quot;')}">
       <div class="filter-chips" id="filterChips">
         <button class="chip${filterMode === "all" ? " active" : ""}" data-filter="all">Todas</button>
@@ -93,17 +106,15 @@ function renderList(loading){
         <button class="chip${filterMode === "fail" ? " active" : ""}" data-filter="fail">No aprobadas</button>
       </div>
       <div class="results-count">${loading ? "Cargando…" : `${filtered.length} de ${allItems.length} evaluaciones`}</div>
-      <div class="saved-list" id="savedListContainer">
+
+      <div id="savedListContainer">
         ${loading ? "" : (filtered.length === 0
           ? `<div class="saved-empty">${allItems.length === 0 ? "Aún no hay evaluaciones en la nube." : "No se encontraron evaluaciones con ese criterio."}</div>`
-          : filtered.map((item, i) => `
-            <div class="saved-item" data-index="${allItems.indexOf(item)}">
-              <div class="info">
-                <div class="top-line">${item.meta?.nombreCliente || "Sin nombre de cliente"}</div>
-                <div class="sub-line">${item.meta?.fecha || "Sin fecha"} · ${item.meta?.vendedor || "Sin vendedor"} · ${item.meta?.ruta || "Sin ruta"}</div>
-              </div>
-              <span class="saved-badge ${item.passed ? "pass" : "fail"}">${item.pct}%</span>
-              <button class="saved-view" data-index="${allItems.indexOf(item)}" title="Ver detalle">📝</button>
+          : filtered.map((item) => `
+            <div class="panel-eval-item" data-index="${allItems.indexOf(item)}">
+              <div class="panel-seal ${item.passed ? "pass" : "fail"}"><span class="pct">${item.pct}%</span></div>
+              <div class="top-line">${item.meta?.nombreCliente || "Sin nombre de cliente"}</div>
+              <div class="sub-line">${item.meta?.fecha || "Sin fecha"} · ${item.meta?.vendedor || "Sin vendedor"} · ${item.meta?.ruta || "Sin ruta"}</div>
             </div>
           `).join(""))
         }
@@ -119,16 +130,16 @@ function renderList(loading){
   document.querySelectorAll("#filterChips .chip").forEach(chip => {
     chip.addEventListener("click", () => { filterMode = chip.dataset.filter; renderList(); });
   });
-  document.querySelectorAll(".saved-view").forEach(btn => {
-    btn.addEventListener("click", () => renderDetail(allItems[parseInt(btn.dataset.index, 10)]));
+  document.querySelectorAll(".panel-eval-item").forEach(el => {
+    el.addEventListener("click", () => renderDetail(allItems[parseInt(el.dataset.index, 10)]));
   });
 }
 
 function renderDetail(item){
   main.innerHTML = `
     <div class="screen">
-      <div class="saved-header">
-        <h2>Detalle de evaluación</h2>
+      <div class="panel-header">
+        <h1 style="font-size:19px;">Detalle de evaluación</h1>
         <button class="btn-ghost" id="backBtn" style="padding:8px 10px;">Volver</button>
       </div>
       <div class="result-head">
