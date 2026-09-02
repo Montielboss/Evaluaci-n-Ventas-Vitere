@@ -10,10 +10,43 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <style>
-  .doc{ max-width:640px; }
-  .panel-stats{ display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:20px; }
-  .panel-refresh{ background:transparent; border:none; color:var(--slate); font-size:13px; padding:8px; cursor:pointer; }
+  .doc{
+    background:transparent;
+    border:none;
+    box-shadow:none;
+    padding:0;
+    border-radius:0;
+    max-width:640px;
+  }
+  .panel-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; padding-right:44px; }
+  .panel-header h1{ font-size:24px; font-weight:800; margin:0; color:var(--ink); letter-spacing:-0.01em; }
+  .panel-refresh{ background:transparent; border:none; color:var(--slate); font-size:15px; padding:8px; cursor:pointer; }
   .panel-refresh:hover{ color:var(--ink); }
+
+  .panel-stats-vertical{ display:flex; flex-direction:column; margin-bottom:26px; }
+  .panel-stat-row{
+    display:flex; justify-content:space-between; align-items:baseline;
+    padding:12px 0; border-bottom:1px solid var(--line-soft);
+  }
+  .panel-stat-row .l{ font-size:12.5px; color:var(--slate); text-transform:uppercase; letter-spacing:0.07em; font-weight:600; }
+  .panel-stat-row .n{ font-size:21px; font-weight:800; color:var(--ink); }
+
+  .panel-eval-item{
+    display:flex; flex-direction:column; align-items:center; text-align:center;
+    padding:30px 0; border-bottom:1px solid var(--line-soft); cursor:pointer;
+    transition:opacity 0.15s ease;
+  }
+  .panel-eval-item:hover{ opacity:0.8; }
+  .panel-eval-item:last-child{ border-bottom:none; }
+  .panel-seal{
+    width:84px; height:84px; border-radius:50%; border:2px solid;
+    display:flex; align-items:center; justify-content:center; margin-bottom:16px;
+  }
+  .panel-seal.pass{ border-color:var(--ok); background:rgba(74,222,128,0.08); }
+  .panel-seal.fail{ border-color:var(--bad); background:rgba(248,113,113,0.08); }
+  .panel-seal .pct{ font-size:21px; font-weight:800; color:var(--ink); }
+  .panel-eval-item .top-line{ font-size:16px; font-weight:700; color:var(--ink); margin-bottom:5px; }
+  .panel-eval-item .sub-line{ font-size:13px; color:var(--slate); }
 </style>
 </head>
 <body>
