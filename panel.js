@@ -20,30 +20,32 @@ const THEME_KEY = "eval_theme_v1"; // comparte el tema con la app principal
 function applyTheme(theme){
   if(theme === "light"){
     document.documentElement.setAttribute("data-theme", "light");
-    document.getElementById("themeToggle").textContent = "☀️";
+    document.getElementById("sideThemeBtn").textContent = "☀️";
   } else {
     document.documentElement.removeAttribute("data-theme");
-    document.getElementById("themeToggle").textContent = "🌙";
+    document.getElementById("sideThemeBtn").textContent = "🌙";
   }
 }
 function initTheme(){
   const saved = localStorage.getItem(THEME_KEY) || "dark";
   applyTheme(saved);
-  document.getElementById("themeToggle").addEventListener("click", () => {
+}
+initTheme();
+
+function initSideToolbar(){
+  document.getElementById("sideThemeBtn").addEventListener("click", () => {
     const current = localStorage.getItem(THEME_KEY) || "dark";
     const next = current === "light" ? "dark" : "light";
     localStorage.setItem(THEME_KEY, next);
     applyTheme(next);
   });
-}
-initTheme();
-
-function initSideToolbar(){
+  document.getElementById("sideRefreshBtn").addEventListener("click", loadEvaluaciones);
   document.getElementById("sideSearchBtn").addEventListener("click", () => {
-    const input = document.getElementById("searchInput");
-    if(input){
-      input.focus();
-      input.scrollIntoView({ behavior:"smooth", block:"center" });
+    searchOpen = !searchOpen;
+    renderList();
+    if(searchOpen){
+      const input = document.getElementById("searchInput");
+      if(input) input.focus();
     }
   });
 }
@@ -53,8 +55,20 @@ const main = document.getElementById("main");
 let allItems = [];
 let searchTerm = "";
 let filterMode = "all";
+let searchOpen = false;
+let currentView = "list"; // "list" | "detail"
+
+function formatDateTime(item){
+  if(!item.savedAt) return item.meta?.fecha || "Sin fecha";
+  const d = new Date(item.savedAt);
+  if(isNaN(d.getTime())) return item.meta?.fecha || "Sin fecha";
+  const datePart = d.toLocaleDateString("es-MX");
+  const timePart = d.toLocaleTimeString("es-MX", { hour:"2-digit", minute:"2-digit" });
+  return `${datePart} · ${timePart}`;
+}
 
 async function loadEvaluaciones(){
+  currentView = "list";
   renderList(true);
   try{
     const snap = await db.collection("evaluaciones").orderBy("savedAt", "desc").get();
@@ -64,7 +78,6 @@ async function loadEvaluaciones(){
     console.error(e);
     main.innerHTML = `
       <div class="screen">
-        <div class="saved-header"><h2>Panel de Evaluaciones</h2></div>
         <div class="saved-empty">No se pudieron cargar los datos. Revisa tu conexión a internet o las reglas de Firestore.</div>
       </div>
     `;
@@ -82,39 +95,40 @@ function matchesFilters(item){
 }
 
 function renderList(loading){
+  currentView = "list";
   const filtered = loading ? [] : allItems.filter(matchesFilters);
   const passCount = allItems.filter(i => i.passed).length;
   const avgPct = allItems.length ? Math.round(allItems.reduce((s, i) => s + (i.pct || 0), 0) / allItems.length) : 0;
 
   main.innerHTML = `
     <div class="screen">
-      <div class="panel-header">
-        <h1>Panel de Evaluaciones</h1>
-        <button class="panel-refresh" id="refreshBtn" title="Actualizar">🔄</button>
+      <div class="panel-top">
+        <div class="panel-stats-line">
+          <div class="stat"><span class="n">${allItems.length}</span><span class="l">Visitas</span></div>
+          <div class="stat"><span class="n">${passCount}</span><span class="l">Aprobadas</span></div>
+          <div class="stat"><span class="n">${avgPct}%</span><span class="l">Promedio</span></div>
+        </div>
+        <div class="filter-chips" id="filterChips">
+          <button class="chip${filterMode === "all" ? " active" : ""}" data-filter="all">Todas</button>
+          <button class="chip${filterMode === "pass" ? " active" : ""}" data-filter="pass">Aprobadas</button>
+          <button class="chip${filterMode === "fail" ? " active" : ""}" data-filter="fail">No aprobadas</button>
+        </div>
+        <div class="panel-search-wrap${searchOpen ? " open" : ""}">
+          <input class="field-input search-input" id="searchInput" type="text" placeholder="Buscar por cliente, vendedor, ruta o fecha" value="${searchTerm.replace(/"/g,'&quot;')}">
+        </div>
       </div>
 
-      <div class="panel-stats-vertical">
-        <div class="panel-stat-row"><span class="l">Visitas</span><span class="n">${allItems.length}</span></div>
-        <div class="panel-stat-row"><span class="l">Aprobadas</span><span class="n">${passCount}</span></div>
-        <div class="panel-stat-row"><span class="l">Promedio</span><span class="n">${avgPct}%</span></div>
-      </div>
-
-      <input class="field-input search-input" id="searchInput" type="text" placeholder="Buscar por cliente, vendedor, ruta o fecha" value="${searchTerm.replace(/"/g,'&quot;')}">
-      <div class="filter-chips" id="filterChips">
-        <button class="chip${filterMode === "all" ? " active" : ""}" data-filter="all">Todas</button>
-        <button class="chip${filterMode === "pass" ? " active" : ""}" data-filter="pass">Aprobadas</button>
-        <button class="chip${filterMode === "fail" ? " active" : ""}" data-filter="fail">No aprobadas</button>
-      </div>
       <div class="results-count">${loading ? "Cargando…" : `${filtered.length} de ${allItems.length} evaluaciones`}</div>
 
-      <div id="savedListContainer">
+      <div class="panel-grid" id="savedListContainer">
         ${loading ? "" : (filtered.length === 0
           ? `<div class="saved-empty">${allItems.length === 0 ? "Aún no hay evaluaciones en la nube." : "No se encontraron evaluaciones con ese criterio."}</div>`
           : filtered.map((item) => `
-            <div class="panel-eval-item" data-index="${allItems.indexOf(item)}">
+            <div class="panel-card" data-index="${allItems.indexOf(item)}">
               <div class="panel-seal ${item.passed ? "pass" : "fail"}"><span class="pct">${item.pct}%</span></div>
               <div class="top-line">${item.meta?.nombreCliente || "Sin nombre de cliente"}</div>
-              <div class="sub-line">${item.meta?.fecha || "Sin fecha"} · ${item.meta?.vendedor || "Sin vendedor"} · ${item.meta?.ruta || "Sin ruta"}</div>
+              <div class="sub-line">${formatDateTime(item)}</div>
+              <div class="sub-line">${item.meta?.vendedor || "Sin vendedor"} · ${item.meta?.ruta || "Sin ruta"}</div>
             </div>
           `).join(""))
         }
@@ -122,7 +136,6 @@ function renderList(loading){
     </div>
   `;
 
-  document.getElementById("refreshBtn").addEventListener("click", loadEvaluaciones);
   const searchInput = document.getElementById("searchInput");
   if(searchInput){
     searchInput.addEventListener("input", (e) => { searchTerm = e.target.value; renderList(); });
@@ -130,24 +143,24 @@ function renderList(loading){
   document.querySelectorAll("#filterChips .chip").forEach(chip => {
     chip.addEventListener("click", () => { filterMode = chip.dataset.filter; renderList(); });
   });
-  document.querySelectorAll(".panel-eval-item").forEach(el => {
+  document.querySelectorAll(".panel-card").forEach(el => {
     el.addEventListener("click", () => renderDetail(allItems[parseInt(el.dataset.index, 10)]));
   });
 }
 
 function renderDetail(item){
+  currentView = "detail";
   main.innerHTML = `
     <div class="screen">
-      <div class="panel-header">
-        <h1 style="font-size:19px;">Detalle de evaluación</h1>
-        <button class="btn-ghost" id="backBtn" style="padding:8px 10px;">Volver</button>
+      <div class="panel-top" style="align-items:flex-start; max-width:640px; margin:0 auto 10px;">
+        <button class="btn-ghost" id="backBtn" style="padding:8px 10px; align-self:flex-start;">← Volver</button>
       </div>
       <div class="result-head">
         <div class="seal"><span class="pct">${item.pct}%</span></div>
         <div class="result-sub">${item.meta?.nombreCliente || "Sin nombre de cliente"}</div>
-        <div class="result-sub">${item.meta?.fecha || "Sin fecha"} · ${item.meta?.vendedor || "Sin vendedor"} · ${item.meta?.ruta || "Sin ruta"}</div>
+        <div class="result-sub">${formatDateTime(item)} · ${item.meta?.vendedor || "Sin vendedor"} · ${item.meta?.ruta || "Sin ruta"}</div>
       </div>
-      <div class="breakdown">
+      <div class="breakdown" style="max-width:640px; margin:0 auto;">
         <div class="breakdown-title">Detalle de la visita</div>
         ${(item.rows || []).map((r, i) => `
           <div class="b-row">
@@ -165,7 +178,7 @@ function renderDetail(item){
         `).join("")}
       </div>
       ${item.listScoringRows && item.listScoringRows.length ? `
-        <div class="list-score-summary">
+        <div class="list-score-summary" style="max-width:640px; margin:0 auto;">
           <div class="breakdown-title">Productos colocados</div>
           ${item.listScoringRows.map((r) => `
             <div class="b-row">
