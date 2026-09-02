@@ -51,6 +51,14 @@ function initSideToolbar(){
 }
 initSideToolbar();
 
+document.getElementById("panelBackBtn").addEventListener("click", () => {
+  if(document.referrer && document.referrer.indexOf(location.host) !== -1){
+    history.back();
+  } else {
+    location.href = location.pathname.replace(/[^/]*$/, "");
+  }
+});
+
 const main = document.getElementById("main");
 let allItems = [];
 let searchTerm = "";
