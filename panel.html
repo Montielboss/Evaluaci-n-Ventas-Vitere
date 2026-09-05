@@ -50,21 +50,19 @@
     background:linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
     border:1px solid var(--line);
     border-radius:16px;
-    padding:22px 12px 18px;
+    padding:20px 12px 18px;
     display:flex; flex-direction:column; align-items:center; text-align:center;
     cursor:pointer;
     transition:border-color 0.15s ease;
   }
   .panel-card:hover{ border-color:rgba(34,211,238,0.4); }
-  .panel-seal{
-    width:62px; height:62px; border-radius:50%; border:2px solid;
-    display:flex; align-items:center; justify-content:center; margin-bottom:12px; flex-shrink:0;
-  }
-  .panel-seal.pass{ border-color:var(--ok); background:rgba(74,222,128,0.08); }
-  .panel-seal.fail{ border-color:var(--bad); background:rgba(248,113,113,0.08); }
-  .panel-seal .pct{ font-size:15px; font-weight:800; color:var(--ink); }
-  .panel-card .top-line{ font-size:13.5px; font-weight:700; color:var(--ink); margin-bottom:4px; line-height:1.3; }
-  .panel-card .sub-line{ font-size:11px; color:var(--slate); line-height:1.4; }
+  .gauge-svg{ width:104px; height:56px; margin-bottom:10px; flex-shrink:0; }
+  .gauge-bg{ fill:none; stroke:var(--line); stroke-width:11; stroke-linecap:round; }
+  .gauge-fill{ fill:none; stroke-width:11; stroke-linecap:round; transition:stroke-dashoffset 0.5s ease; }
+  .gauge-fill.pass{ stroke:var(--ok); }
+  .gauge-fill.fail{ stroke:var(--bad); }
+  .panel-card .top-line{ font-size:16px; font-weight:800; color:var(--ink); margin-bottom:6px; line-height:1.3; }
+  .panel-card .sub-line{ font-size:12.5px; color:var(--slate); line-height:1.5; }
 
   .side-toolbar{
     position:fixed; top:0; right:0; bottom:0; width:60px;
