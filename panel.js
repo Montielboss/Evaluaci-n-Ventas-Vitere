@@ -133,9 +133,10 @@ function renderList(loading){
           ? `<div class="saved-empty">${allItems.length === 0 ? "Aún no hay evaluaciones en la nube." : "No se encontraron evaluaciones con ese criterio."}</div>`
           : filtered.map((item) => `
             <div class="panel-card" data-index="${allItems.indexOf(item)}">
-              <svg class="gauge-svg" viewBox="0 0 100 54">
+              <svg class="gauge-svg" viewBox="0 0 100 60">
                 <path class="gauge-bg" d="M10 50 A 40 40 0 0 1 90 50" />
                 <path class="gauge-fill ${item.passed ? "pass" : "fail"}" data-pct="${item.pct}" d="M10 50 A 40 40 0 0 1 90 50" />
+                <text x="50" y="48" text-anchor="middle" class="gauge-pct-text">${item.pct}%</text>
               </svg>
               <div class="top-line">${item.meta?.nombreCliente || "Sin nombre de cliente"}</div>
               <div class="sub-line">${formatDateTime(item)}</div>
