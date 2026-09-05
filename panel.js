@@ -133,7 +133,10 @@ function renderList(loading){
           ? `<div class="saved-empty">${allItems.length === 0 ? "Aún no hay evaluaciones en la nube." : "No se encontraron evaluaciones con ese criterio."}</div>`
           : filtered.map((item) => `
             <div class="panel-card" data-index="${allItems.indexOf(item)}">
-              <div class="panel-seal ${item.passed ? "pass" : "fail"}"><span class="pct">${item.pct}%</span></div>
+              <svg class="gauge-svg" viewBox="0 0 100 54">
+                <path class="gauge-bg" d="M10 50 A 40 40 0 0 1 90 50" />
+                <path class="gauge-fill ${item.passed ? "pass" : "fail"}" data-pct="${item.pct}" d="M10 50 A 40 40 0 0 1 90 50" />
+              </svg>
               <div class="top-line">${item.meta?.nombreCliente || "Sin nombre de cliente"}</div>
               <div class="sub-line">${formatDateTime(item)}</div>
               <div class="sub-line">${item.meta?.vendedor || "Sin vendedor"} · ${item.meta?.ruta || "Sin ruta"}</div>
@@ -143,6 +146,13 @@ function renderList(loading){
       </div>
     </div>
   `;
+
+  document.querySelectorAll(".gauge-fill").forEach((el) => {
+    const len = el.getTotalLength();
+    const pct = Math.max(0, Math.min(100, parseFloat(el.dataset.pct) || 0)) / 100;
+    el.style.strokeDasharray = `${len}`;
+    el.style.strokeDashoffset = `${len * (1 - pct)}`;
+  });
 
   const searchInput = document.getElementById("searchInput");
   if(searchInput){
