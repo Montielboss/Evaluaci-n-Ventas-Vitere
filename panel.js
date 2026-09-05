@@ -141,6 +141,7 @@ function renderList(loading){
               <div class="top-line">${item.meta?.nombreCliente || "Sin nombre de cliente"}</div>
               <div class="sub-line">${formatDateTime(item)}</div>
               <div class="sub-line">${item.meta?.vendedor || "Sin vendedor"} · ${item.meta?.ruta || "Sin ruta"}</div>
+              ${(typeof item.earned === "number" && typeof item.total === "number") ? `<div class="points-line">${Math.round(item.earned * 10) / 10} de ${Math.round(item.total * 10) / 10} puntos</div>` : ""}
             </div>
           `).join(""))
         }
