@@ -182,18 +182,41 @@ function renderList(loading){
   });
 }
 
-function renderDetail(item){
+function renderDetail(item, editMode){
   currentView = "detail";
+
+  const metaBlock = editMode ? `
+    <div style="max-width:380px; margin:0 auto 24px; display:flex; flex-direction:column; gap:10px;">
+      <input class="field-input" id="editNombre" type="text" placeholder="Nombre del cliente" value="${(item.meta?.nombreCliente || "").replace(/"/g,'&quot;')}">
+      <input class="field-input" id="editVendedor" type="text" placeholder="Vendedor" value="${(item.meta?.vendedor || "").replace(/"/g,'&quot;')}">
+      <input class="field-input" id="editRuta" type="text" placeholder="Ruta" value="${(item.meta?.ruta || "").replace(/"/g,'&quot;')}">
+      <input class="field-input" id="editFecha" type="date" value="${(item.meta?.fecha || "").replace(/"/g,'&quot;')}">
+      <div style="display:flex; gap:10px; margin-top:6px;">
+        <button class="btn-primary" id="saveEditBtn" style="flex:1; justify-content:center;">Guardar cambios</button>
+        <button class="btn-ghost" id="cancelEditBtn" style="flex:1; justify-content:center;">Cancelar</button>
+      </div>
+    </div>
+  ` : `
+    <div class="result-head">
+      <div class="seal"><span class="pct">${item.pct}%</span></div>
+      <div class="result-sub">${item.meta?.nombreCliente || "Sin nombre de cliente"}</div>
+      <div class="result-sub">${formatDate(item)} · ${formatTime(item)} · ${item.meta?.vendedor || "Sin vendedor"} · ${item.meta?.ruta || "Sin ruta"}</div>
+    </div>
+  `;
+
   main.innerHTML = `
     <div class="screen">
-      <div class="panel-top" style="align-items:flex-start; max-width:640px; margin:0 auto 10px;">
-        <button class="btn-ghost" id="backBtn" style="padding:8px 10px; align-self:flex-start;">← Volver</button>
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px; max-width:640px; margin:0 auto 10px;">
+        <button class="btn-ghost" id="backBtn" style="padding:8px 10px;">← Volver</button>
+        ${editMode ? "" : `
+          <div style="display:flex; gap:8px;">
+            <button class="btn-ghost" id="editBtn" style="padding:8px 10px;">✏️ Editar</button>
+            <button class="btn-ghost btn-exit" id="deleteBtn" style="padding:8px 10px;">🗑️ Eliminar</button>
+          </div>
+        `}
       </div>
-      <div class="result-head">
-        <div class="seal"><span class="pct">${item.pct}%</span></div>
-        <div class="result-sub">${item.meta?.nombreCliente || "Sin nombre de cliente"}</div>
-        <div class="result-sub">${formatDate(item)} · ${formatTime(item)} · ${item.meta?.vendedor || "Sin vendedor"} · ${item.meta?.ruta || "Sin ruta"}</div>
-      </div>
+      ${metaBlock}
+      ${editMode ? "" : `
       <div class="breakdown" style="max-width:640px; margin:0 auto;">
         <div class="breakdown-title">Detalle de la visita</div>
         ${(item.rows || []).map((r, i) => `
@@ -225,9 +248,45 @@ function renderDetail(item){
           `).join("")}
         </div>
       ` : ""}
+      `}
     </div>
   `;
+
   document.getElementById("backBtn").addEventListener("click", () => renderList());
+
+  if(editMode){
+    document.getElementById("cancelEditBtn").addEventListener("click", () => renderDetail(item, false));
+    document.getElementById("saveEditBtn").addEventListener("click", async () => {
+      const newMeta = {
+        ...item.meta,
+        nombreCliente: document.getElementById("editNombre").value,
+        vendedor: document.getElementById("editVendedor").value,
+        ruta: document.getElementById("editRuta").value,
+        fecha: document.getElementById("editFecha").value
+      };
+      try{
+        await db.collection("evaluaciones").doc(String(item.id)).update({ meta: newMeta });
+        item.meta = newMeta;
+        const idx = allItems.findIndex(i => i.id === item.id);
+        if(idx !== -1) allItems[idx].meta = newMeta;
+        renderDetail(item, false);
+      }catch(e){
+        alert("No se pudo guardar el cambio: " + e.message);
+      }
+    });
+  } else {
+    document.getElementById("editBtn").addEventListener("click", () => renderDetail(item, true));
+    document.getElementById("deleteBtn").addEventListener("click", async () => {
+      if(!confirm("¿Seguro que quieres eliminar esta evaluación? No se puede deshacer.")) return;
+      try{
+        await db.collection("evaluaciones").doc(String(item.id)).delete();
+        allItems = allItems.filter(i => i.id !== item.id);
+        renderList();
+      }catch(e){
+        alert("No se pudo eliminar: " + e.message);
+      }
+    });
+  }
 }
 
 loadEvaluaciones();
