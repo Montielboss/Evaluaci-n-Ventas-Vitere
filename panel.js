@@ -66,13 +66,17 @@ let filterMode = "all";
 let searchOpen = false;
 let currentView = "list"; // "list" | "detail"
 
-function formatDateTime(item){
+function formatDate(item){
   if(!item.savedAt) return item.meta?.fecha || "Sin fecha";
   const d = new Date(item.savedAt);
   if(isNaN(d.getTime())) return item.meta?.fecha || "Sin fecha";
-  const datePart = d.toLocaleDateString("es-MX");
-  const timePart = d.toLocaleTimeString("es-MX", { hour:"2-digit", minute:"2-digit" });
-  return `${datePart} · ${timePart}`;
+  return d.toLocaleDateString("es-MX");
+}
+function formatTime(item){
+  if(!item.savedAt) return "";
+  const d = new Date(item.savedAt);
+  if(isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString("es-MX", { hour:"2-digit", minute:"2-digit" });
 }
 
 async function loadEvaluaciones(){
@@ -139,8 +143,9 @@ function renderList(loading){
                 <text x="50" y="48" text-anchor="middle" class="gauge-pct-text">${item.pct}%</text>
               </svg>
               <div class="top-line">${item.meta?.nombreCliente || "Sin nombre de cliente"}</div>
-              <div class="sub-line">${formatDateTime(item)}</div>
               <div class="sub-line">${item.meta?.vendedor || "Sin vendedor"} · ${item.meta?.ruta || "Sin ruta"}</div>
+              <div class="sub-line">${formatTime(item)}</div>
+              <div class="sub-line">${formatDate(item)}</div>
               ${(typeof item.earned === "number" && typeof item.total === "number") ? `<div class="points-line">${Math.round(item.earned * 10) / 10} de ${Math.round(item.total * 10) / 10} puntos</div>` : ""}
             </div>
           `).join(""))
@@ -187,7 +192,7 @@ function renderDetail(item){
       <div class="result-head">
         <div class="seal"><span class="pct">${item.pct}%</span></div>
         <div class="result-sub">${item.meta?.nombreCliente || "Sin nombre de cliente"}</div>
-        <div class="result-sub">${formatDateTime(item)} · ${item.meta?.vendedor || "Sin vendedor"} · ${item.meta?.ruta || "Sin ruta"}</div>
+        <div class="result-sub">${formatDate(item)} · ${formatTime(item)} · ${item.meta?.vendedor || "Sin vendedor"} · ${item.meta?.ruta || "Sin ruta"}</div>
       </div>
       <div class="breakdown" style="max-width:640px; margin:0 auto;">
         <div class="breakdown-title">Detalle de la visita</div>
