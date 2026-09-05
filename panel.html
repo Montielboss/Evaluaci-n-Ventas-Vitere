@@ -44,19 +44,25 @@
   .panel-grid{
     display:grid;
     grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));
-    gap:16px;
+    gap:44px 16px;
+    margin-top:30px;
   }
   .panel-card{
     background:linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
     border:1px solid var(--line);
     border-radius:16px;
-    padding:20px 12px 18px;
+    padding:40px 12px 18px;
     display:flex; flex-direction:column; align-items:center; text-align:center;
     cursor:pointer;
+    position:relative;
     transition:border-color 0.15s ease;
   }
   .panel-card:hover{ border-color:rgba(34,211,238,0.4); }
-  .gauge-svg{ width:104px; height:56px; margin-bottom:10px; flex-shrink:0; }
+  .gauge-svg{
+    position:absolute; top:0; left:50%;
+    transform:translate(-50%, -50%);
+    width:104px; height:56px;
+  }
   .gauge-bg{ fill:none; stroke:var(--line); stroke-width:11; stroke-linecap:round; }
   .gauge-fill{ fill:none; stroke-width:11; stroke-linecap:round; transition:stroke-dashoffset 0.5s ease; }
   .gauge-fill.pass{ stroke:var(--ok); }
