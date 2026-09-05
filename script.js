@@ -762,7 +762,7 @@ function renderResults(){
 
   document.getElementById("saveBtn").addEventListener("click", () => {
     const list = loadSaved();
-    const record = { id: Date.now(), savedAt: new Date().toISOString(), pct, passed, meta, rows, listScoringRows, synced:false };
+    const record = { id: Date.now(), savedAt: new Date().toISOString(), pct, passed, earned, total, meta, rows, listScoringRows, synced:false };
     list.push(record);
     const ok = persistSaved(list);
     pushToCloud(record);
