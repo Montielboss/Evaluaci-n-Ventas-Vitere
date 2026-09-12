@@ -792,3 +792,16 @@ if("serviceWorker" in navigator){
     navigator.serviceWorker.register("service-worker.js", { updateViaCache:"none" }).catch(() => {});
   });
 }
+/* =========================================================================
+   SELECCIÓN DE ROL
+   ========================================================================= */
+function seleccionarRol(rol) {
+  // Aquí puedes guardar el rol en una variable para usarlo más tarde
+  console.log("Rol seleccionado:", rol);
+  
+  // Ocultar la pantalla de selección con un efecto suave
+  const overlay = document.getElementById("roleOverlay");
+  if (overlay) {
+    overlay.classList.add("hidden");
+  }
+}
