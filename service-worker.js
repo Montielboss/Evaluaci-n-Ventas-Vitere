@@ -8,7 +8,7 @@
    el teléfono puede seguir usando los archivos viejos guardados.
    ========================================================================== */
 
-const CACHE_NAME = "eval-pv-v2.3";
+const CACHE_NAME = "eval-pv-v2.4";
 
 const CORE_ASSETS = [
   "./",
