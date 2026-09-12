@@ -33,13 +33,6 @@ function initTheme(){
 initTheme();
 
 function initSideToolbar(){
-  document.getElementById("sideThemeBtn").addEventListener("click", () => {
-    const current = localStorage.getItem(THEME_KEY) || "dark";
-    const next = current === "light" ? "dark" : "light";
-    localStorage.setItem(THEME_KEY, next);
-    applyTheme(next);
-  });
-  document.getElementById("sideRefreshBtn").addEventListener("click", loadEvaluaciones);
   document.getElementById("sideSearchBtn").addEventListener("click", () => {
     searchOpen = !searchOpen;
     renderList();
@@ -48,6 +41,20 @@ function initSideToolbar(){
       if(input) input.focus();
     }
   });
+  document.getElementById("sideRefreshBtn").addEventListener("click", loadEvaluaciones);
+  document.getElementById("sideThemeBtn").addEventListener("click", () => {
+    const current = localStorage.getItem(THEME_KEY) || "dark";
+    const next = current === "light" ? "dark" : "light";
+    localStorage.setItem(THEME_KEY, next);
+    applyTheme(next);
+  });
+  // Botón de cambio de vista
+  if(document.getElementById("sideViewBtn")){
+    document.getElementById("sideViewBtn").addEventListener("click", () => {
+      viewMode = viewMode === "grid" ? "list" : "grid";
+      renderList();
+    });
+  }
 }
 initSideToolbar();
 
@@ -101,8 +108,39 @@ function matchesFilters(item){
   if(filterMode === "fail" && item.passed) return false;
   const term = searchTerm.trim().toLowerCase();
   if(term.length < 3) return true;
-  const haystack = [item.meta?.nombreCliente, item.meta?.vendedor, item.meta?.ruta, item.meta?.fecha, item.meta?.codigoCliente]
-    .join(" ").toLowerCase();
+
+  // Parsear búsqueda por campo específico: "campo:valor"
+  if(term.includes(":")){
+    const [field, value] = term.split(":").map(s => s.trim());
+    
+    switch(field){
+      case "cliente":
+        return (item.meta?.nombreCliente || "").toLowerCase().includes(value);
+      case "vendedor":
+      case "vendor":
+        return (item.meta?.vendedor || "").toLowerCase().includes(value);
+      case "ruta":
+        return (item.meta?.ruta || "").toLowerCase().includes(value);
+      case "fecha":
+        // Permitir búsqueda por fecha en varios formatos
+        const fecha = item.meta?.fecha || formatDate(item);
+        return fecha.toLowerCase().includes(value) || 
+               fecha.replace(/\//g, "-").toLowerCase().includes(value);
+      default:
+        return true;
+    }
+  }
+  
+  // Búsqueda general en todos los campos
+  const haystack = [
+    item.meta?.nombreCliente, 
+    item.meta?.vendedor, 
+    item.meta?.ruta, 
+    item.meta?.fecha,
+    formatDate(item),
+    formatTime(item)
+  ].join(" ").toLowerCase();
+  
   return haystack.includes(term);
 }
 
@@ -126,7 +164,7 @@ function renderList(loading){
           <button class="chip${filterMode === "fail" ? " active" : ""}" data-filter="fail">No aprobadas</button>
         </div>
         <div class="panel-search-wrap${searchOpen ? " open" : ""}">
-          <input class="field-input search-input" id="searchInput" type="text" placeholder="Buscar por cliente, vendedor, ruta o fecha" value="${searchTerm.replace(/"/g,'&quot;')}">
+          <input class="field-input search-input" id="searchInput" type="text" placeholder="cliente:nombre, ruta:número, fecha:DD/MM, vendedor:nombre" value="${searchTerm.replace(/"/g,'&quot;')}">
         </div>
       </div>
 
@@ -135,7 +173,8 @@ function renderList(loading){
       <div class="panel-grid" id="savedListContainer">
         ${loading ? "" : (filtered.length === 0
           ? `<div class="saved-empty">${allItems.length === 0 ? "Aún no hay evaluaciones en la nube." : "No se encontraron evaluaciones con ese criterio."}</div>`
-          : filtered.map((item) => `
+          : (viewMode === "grid" 
+            ? filtered.map((item) => `
             <div class="panel-card" data-index="${allItems.indexOf(item)}">
               <svg class="gauge-svg" viewBox="0 0 100 60">
                 <path class="gauge-bg" d="M10 50 A 40 40 0 0 1 90 50" />
@@ -148,10 +187,32 @@ function renderList(loading){
               <div class="sub-line">${formatDate(item)}</div>
               ${(typeof item.earned === "number" && typeof item.total === "number") ? `<div class="points-line">${Math.round(item.earned * 10) / 10} de ${Math.round(item.total * 10) / 10} puntos</div>` : ""}
             </div>
-          `).join(""))
+          `).join("")
+            : `<table style="width:100%; border-collapse:collapse;">
+              <thead style="border-bottom:1px solid var(--line);">
+                <tr style="text-align:left; padding:10px; font-weight:700; font-size:13px;">
+                  <th style="padding:10px;">Cliente</th>
+                  <th style="padding:10px;">Vendedor</th>
+                  <th style="padding:10px;">Ruta</th>
+                  <th style="padding:10px;">Fecha</th>
+                  <th style="padding:10px; text-align:center;">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filtered.map((item) => `
+                  <tr style="border-bottom:1px solid var(--line-soft); cursor:pointer; transition:background 0.15s ease;" onclick="renderDetail(allItems[${allItems.indexOf(item)}])">
+                    <td style="padding:12px;">${item.meta?.nombreCliente || "Sin nombre"}</td>
+                    <td style="padding:12px;">${item.meta?.vendedor || "Sin vendedor"}</td>
+                    <td style="padding:12px;">${item.meta?.ruta || "Sin ruta"}</td>
+                    <td style="padding:12px;">${formatDate(item)}</td>
+                    <td style="padding:12px; text-align:center; font-weight:700; color:${item.passed ? "var(--ok)" : "var(--bad)"};">${item.pct}%</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>`
+          ))
         }
       </div>
-    </div>
   `;
 
   document.querySelectorAll(".gauge-fill").forEach((el) => {
