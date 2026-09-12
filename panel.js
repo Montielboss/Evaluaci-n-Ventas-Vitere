@@ -20,10 +20,10 @@ const THEME_KEY = "eval_theme_v1"; // comparte el tema con la app principal
 function applyTheme(theme){
   if(theme === "light"){
     document.documentElement.setAttribute("data-theme", "light");
-    const btn = document.getElementById("sideThemeBtn"); if(btn) btn.textContent = "☀️";
+    document.getElementById("sideThemeBtn").textContent = "☀️";
   } else {
     document.documentElement.removeAttribute("data-theme");
-    const btn = document.getElementById("sideThemeBtn"); if(btn) btn.textContent = "🌙";
+    document.getElementById("sideThemeBtn").textContent = "🌙";
   }
 }
 function initTheme(){
@@ -33,19 +33,7 @@ function initTheme(){
 initTheme();
 
 function initSideToolbar(){
-  const themeBtn = document.getElementById("sideThemeBtn");
-  if(themeBtn) themeBtn.addEventListener("click", () => {
-    const current = localStorage.getItem(THEME_KEY) || "dark";
-    const next = current === "light" ? "dark" : "light";
-    localStorage.setItem(THEME_KEY, next);
-    applyTheme(next);
-  });
-
-  const refreshBtn = document.getElementById("sideRefreshBtn");
-  if(refreshBtn) refreshBtn.addEventListener("click", loadEvaluaciones);
-
-  const searchBtn = document.getElementById("sideSearchBtn");
-  if(searchBtn) searchBtn.addEventListener("click", () => {
+  document.getElementById("sideSearchBtn").addEventListener("click", () => {
     searchOpen = !searchOpen;
     renderList();
     if(searchOpen){
@@ -53,31 +41,30 @@ function initSideToolbar(){
       if(input) input.focus();
     }
   });
-
-  // Optional view toggle button — may not be present in HTML but if it is, enable toggling
-  const sideViewBtn = document.getElementById("sideViewBtn");
-  if(sideViewBtn){
-    sideViewBtn.addEventListener("click", () => {
-      currentView = currentView === "list" ? "detail" : "list";
-      // We call renderList to update the UI; if you want a different behavior
-      // when switching to "detail" you can adapt this to call renderDetail(selectedItem).
+  document.getElementById("sideRefreshBtn").addEventListener("click", loadEvaluaciones);
+  document.getElementById("sideThemeBtn").addEventListener("click", () => {
+    const current = localStorage.getItem(THEME_KEY) || "dark";
+    const next = current === "light" ? "dark" : "light";
+    localStorage.setItem(THEME_KEY, next);
+    applyTheme(next);
+  });
+  // Botón de cambio de vista
+  if (document.getElementById("sideViewBtn")) {
+    document.getElementById("sideViewBtn").addEventListener("click", () => {
+      viewMode = viewMode === "grid" ? "table" : "grid";
       renderList();
     });
   }
 }
 initSideToolbar();
 
-// Botón "volver" del panel: si venimos desde la app volvemos, si no vamos al root
-const panelBackBtn = document.getElementById("panelBackBtn");
-if(panelBackBtn){
-  panelBackBtn.addEventListener("click", () => {
-    if(document.referrer && document.referrer.indexOf(location.host) !== -1){
-      history.back();
-    } else {
-      location.href = location.pathname.replace(/[^/]*$/, "");
-    }
-  });
-}
+document.getElementById("panelBackBtn").addEventListener("click", () => {
+  if(document.referrer && document.referrer.indexOf(location.host) !== -1){
+    history.back();
+  } else {
+    location.href = location.pathname.replace(/[^/]*$/, "");
+  }
+});
 
 const main = document.getElementById("main");
 let allItems = [];
@@ -85,19 +72,7 @@ let searchTerm = "";
 let filterMode = "all";
 let searchOpen = false;
 let currentView = "list"; // "list" | "detail"
-
-// Backwards-compatibility: create global alias `viewMode` that maps to currentView
-// This prevents ReferenceError if some code still reads/writes `viewMode`.
-try{
-  Object.defineProperty(window, "viewMode", {
-    get() { return currentView; },
-    set(v) { currentView = v; },
-    configurable: true,
-    enumerable: true
-  });
-}catch(e){
-  // In very old browsers this may fail; ignore safely
-}
+let viewMode = "grid"; // "grid" | "table"
 
 function formatDate(item){
   if(!item.savedAt) return item.meta?.fecha || "Sin fecha";
@@ -113,7 +88,6 @@ function formatTime(item){
 }
 
 async function loadEvaluaciones(){
-  // When explicitly loading from cloud we want to show the list view
   currentView = "list";
   renderList(true);
   try{
@@ -135,13 +109,44 @@ function matchesFilters(item){
   if(filterMode === "fail" && item.passed) return false;
   const term = searchTerm.trim().toLowerCase();
   if(term.length < 3) return true;
-  const haystack = [item.meta?.nombreCliente, item.meta?.vendedor, item.meta?.ruta, item.meta?.fecha, item.meta?.codigoCliente]
-    .join(" ").toLowerCase();
+
+  // Parsear búsqueda por campo específico: "campo:valor"
+  if(term.includes(":")){
+    const [field, value] = term.split(":").map(s => s.trim());
+    
+    switch(field){
+      case "cliente":
+        return (item.meta?.nombreCliente || "").toLowerCase().includes(value);
+      case "vendedor":
+      case "vendor":
+        return (item.meta?.vendedor || "").toLowerCase().includes(value);
+      case "ruta":
+        return (item.meta?.ruta || "").toLowerCase().includes(value);
+      case "fecha":
+        // Permitir búsqueda por fecha en varios formatos
+        const fecha = item.meta?.fecha || formatDate(item);
+        return fecha.toLowerCase().includes(value) || 
+               fecha.replace(/\//g, "-").toLowerCase().includes(value);
+      default:
+        return true;
+    }
+  }
+  
+  // Búsqueda general en todos los campos
+  const haystack = [
+    item.meta?.nombreCliente, 
+    item.meta?.vendedor, 
+    item.meta?.ruta, 
+    item.meta?.fecha,
+    formatDate(item),
+    formatTime(item)
+  ].join(" ").toLowerCase();
+  
   return haystack.includes(term);
 }
 
 function renderList(loading){
-  // IMPORTANT: don't overwrite currentView here — toggling relies on keeping it.
+  currentView = "list";
   const filtered = loading ? [] : allItems.filter(matchesFilters);
   const passCount = allItems.filter(i => i.passed).length;
   const avgPct = allItems.length ? Math.round(allItems.reduce((s, i) => s + (i.pct || 0), 0) / allItems.length) : 0;
@@ -160,16 +165,17 @@ function renderList(loading){
           <button class="chip${filterMode === "fail" ? " active" : ""}" data-filter="fail">No aprobadas</button>
         </div>
         <div class="panel-search-wrap${searchOpen ? " open" : ""}">
-          <input class="field-input search-input" id="searchInput" type="text" placeholder="Buscar por cliente, vendedor, ruta o fecha" value="${searchTerm.replace(/\"/g,'&quot;')}">
+          <input class="field-input search-input" id="searchInput" type="text" placeholder="cliente:nombre, ruta:número, fecha:DD/MM, vendedor:nombre" value="${searchTerm.replace(/"/g,'&quot;')}">
         </div>
       </div>
 
-      <div class="results-count">${loading ? "Cargando…" : (searchTerm.trim().length > 0 && searchTerm.trim().length < 3 ? "Escribe al menos 3 caracteres para buscar" : `${filtered.length} de ${allItems.length} resultados`)}</div>
+      <div class="results-count">${loading ? "Cargando…" : (searchTerm.trim().length > 0 && searchTerm.trim().length < 3 ? "Escribe al menos 3 caracteres para buscar" : `${filtered.length} de ${allItems.length} evaluaciones`)}</div>
 
       <div class="panel-grid" id="savedListContainer">
         ${loading ? "" : (filtered.length === 0
           ? `<div class="saved-empty">${allItems.length === 0 ? "Aún no hay evaluaciones en la nube." : "No se encontraron evaluaciones con ese criterio."}</div>`
-          : filtered.map((item) => `
+          : (viewMode === "grid" 
+            ? filtered.map((item) => `
             <div class="panel-card" data-index="${allItems.indexOf(item)}">
               <svg class="gauge-svg" viewBox="0 0 100 60">
                 <path class="gauge-bg" d="M10 50 A 40 40 0 0 1 90 50" />
@@ -183,19 +189,38 @@ function renderList(loading){
               ${(typeof item.earned === "number" && typeof item.total === "number") ? `<div class="points-line">${Math.round(item.earned * 10) / 10} de ${Math.round(item.total * 10) / 10} puntos</div>` : ""}
             </div>
           `).join("")
-        )}
+            : `<table style="width:100%; border-collapse:collapse;">
+              <thead style="border-bottom:1px solid var(--line);">
+                <tr style="text-align:left; padding:10px; font-weight:700; font-size:13px;">
+                  <th style="padding:10px;">Cliente</th>
+                  <th style="padding:10px;">Vendedor</th>
+                  <th style="padding:10px;">Ruta</th>
+                  <th style="padding:10px;">Fecha</th>
+                  <th style="padding:10px; text-align:center;">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filtered.map((item) => `
+                  <tr style="border-bottom:1px solid var(--line-soft); cursor:pointer; transition:background 0.15s ease;" onclick="renderDetail(allItems[${allItems.indexOf(item)}])">
+                    <td style="padding:12px;">${item.meta?.nombreCliente || "Sin nombre"}</td>
+                    <td style="padding:12px;">${item.meta?.vendedor || "Sin vendedor"}</td>
+                    <td style="padding:12px;">${item.meta?.ruta || "Sin ruta"}</td>
+                    <td style="padding:12px;">${formatDate(item)}</td>
+                    <td style="padding:12px; text-align:center; font-weight:700; color:${item.passed ? "var(--ok)" : "var(--bad)"};">${item.pct}%</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>`
+          ))
+        }
       </div>
-    </div>
   `;
 
-  // Animate gauges
   document.querySelectorAll(".gauge-fill").forEach((el) => {
-    try{
-      const len = el.getTotalLength();
-      const pct = Math.max(0, Math.min(100, parseFloat(el.dataset.pct) || 0)) / 100;
-      el.style.strokeDasharray = `${len}`;
-      el.style.strokeDashoffset = `${len * (1 - pct)}`;
-    }catch(e){/* ignore */}
+    const len = el.getTotalLength();
+    const pct = Math.max(0, Math.min(100, parseFloat(el.dataset.pct) || 0)) / 100;
+    el.style.strokeDasharray = `${len}`;
+    el.style.strokeDashoffset = `${len * (1 - pct)}`;
   });
 
   const searchInput = document.getElementById("searchInput");
@@ -224,10 +249,10 @@ function renderDetail(item, editMode){
 
   const metaBlock = editMode ? `
     <div style="max-width:380px; margin:0 auto 24px; display:flex; flex-direction:column; gap:10px;">
-      <input class="field-input" id="editNombre" type="text" placeholder="Nombre del cliente" value="${(item.meta?.nombreCliente || "").replace(/\"/g,'&quot;')}">
-      <input class="field-input" id="editVendedor" type="text" placeholder="Vendedor" value="${(item.meta?.vendedor || "").replace(/\"/g,'&quot;')}">
-      <input class="field-input" id="editRuta" type="text" placeholder="Ruta" value="${(item.meta?.ruta || "").replace(/\"/g,'&quot;')}">
-      <input class="field-input" id="editFecha" type="date" value="${(item.meta?.fecha || "").replace(/\"/g,'&quot;')}">
+      <input class="field-input" id="editNombre" type="text" placeholder="Nombre del cliente" value="${(item.meta?.nombreCliente || "").replace(/"/g,'&quot;')}">
+      <input class="field-input" id="editVendedor" type="text" placeholder="Vendedor" value="${(item.meta?.vendedor || "").replace(/"/g,'&quot;')}">
+      <input class="field-input" id="editRuta" type="text" placeholder="Ruta" value="${(item.meta?.ruta || "").replace(/"/g,'&quot;')}">
+      <input class="field-input" id="editFecha" type="date" value="${(item.meta?.fecha || "").replace(/"/g,'&quot;')}">
       <div style="display:flex; gap:10px; margin-top:6px;">
         <button class="btn-primary" id="saveEditBtn" style="flex:1; justify-content:center;">Guardar cambios</button>
         <button class="btn-ghost" id="cancelEditBtn" style="flex:1; justify-content:center;">Cancelar</button>
@@ -289,8 +314,7 @@ function renderDetail(item, editMode){
     </div>
   `;
 
-  const backBtn = document.getElementById("backBtn");
-  if(backBtn) backBtn.addEventListener("click", () => renderList());
+  document.getElementById("backBtn").addEventListener("click", () => renderList());
 
   if(editMode){
     document.getElementById("cancelEditBtn").addEventListener("click", () => renderDetail(item, false));
@@ -327,5 +351,4 @@ function renderDetail(item, editMode){
   }
 }
 
-// Inicial carga
 loadEvaluaciones();
