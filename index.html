@@ -13,6 +13,26 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<!-- Modal de Selección de Rol -->
+<div id="roleOverlay" class="role-overlay">
+  <div class="role-container">
+    <!-- El vendedor se ocultará en computadora mediante CSS -->
+    <button class="role-card" id="btnVendedor" onclick="seleccionarRol('Vendedor')">
+      <span class="role-icon">🛒</span>
+      <span class="role-title">Vendedor</span>
+    </button>
+    
+    <button class="role-card" id="btnGerente" onclick="seleccionarRol('Gerente')">
+      <span class="role-icon">📊</span>
+      <span class="role-title">Gerente</span>
+    </button>
+    
+    <button class="role-card" id="btnJefe" onclick="seleccionarRol('Jefe')">
+      <span class="role-icon">🏢</span>
+      <span class="role-title">Jefe</span>
+    </button>
+  </div>
+</div>
 
 <div class="doc">
   <button class="theme-toggle" id="themeToggle" title="Cambiar tema" type="button">🌙</button>
